@@ -1,0 +1,19 @@
+.eunit
+deps
+*.o
+*.beam
+*.plt
+erl_crash.dump
+
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+.elc
+auto-save-list
+tramp
+.\#*
+
+# Org-mode
+.org-id-locations
+*_archive

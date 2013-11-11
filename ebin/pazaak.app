@@ -1,0 +1,9 @@
+{application,pazaak,
+             [{description,[]},
+              {vsn,"1"},
+              {registered,[]},
+              {applications,[kernel,stdlib]},
+              {mod,{pazaak_app,[]}},
+              {env,[]},
+              {modules,[api,bot,card,game,game_sup,http_api,matchmaker,
+                        pazaak_app,pazaak_sup,playermanager]}]}.
