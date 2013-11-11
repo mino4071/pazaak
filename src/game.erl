@@ -67,21 +67,32 @@ handle_call({join, PlayerId}, _From, State) ->
     {reply, ok, NewState};
 
 handle_call({state, PlayerId}, _From, State) ->
-    {reply, build_state(PlayerId, State), State};
+    {reply, build_response(PlayerId, State), State};
 
 handle_call({end_turn, PlayerId}, _From, State = #state{player = #player{id = PlayerId}}) ->
-    {ReturnValue, ReturnState} = finish_turn(State),
-    {reply, ReturnValue, ReturnState};
-handle_call({end_turn, _}, _, State) ->
-    {reply, illegal_action, State};
+    [Card|Deck] = State#state.deck,
+    Opponent = State#state.opponent#player
+	{table=[Card|State#state.opponent#player.table]},
+
+    NewState = State#state
+	{
+	  deck = Deck,
+	  opponent = Opponent
+	},
+    
+    update_game_state(NewState);
 			      
 handle_call({wait_for_opponent, PlayerId}, From, State) ->
     case State#state.player#player.id of
 	PlayerId ->
-	    {reply, build_state(PlayerId, State), State};
+	    {reply, build_response(PlayerId, State), State};
 	_ ->
 	    {noreply, State#state{waiting = From}}
-    end.
+    end;
+
+handle_call(_, _, State) ->
+    {reply, illegal_action, State}.
+
 
 handle_cast(_Msg, State) -> {noreply, State}.
 handle_info(_Msg, State) -> {noreply, State}.
@@ -92,22 +103,9 @@ code_change(_OldVersion, State, _Extra) -> {ok, State}.
 %% Helper functions
 %% =================================================================== 
 
-finish_turn(State) ->
-    [Card|Deck] = State#state.deck,
-    Player = State#state.player,
-    Opponent = State#state.opponent,
-
-    OpponentTable = [Card|Opponent#player.table],
-    OpponentSum = card:calculate_sum(OpponentTable),
-    OpponentState = Opponent#player{table = OpponentTable,
-				    sum = OpponentSum},
-    
-    ReturnState = State#state{player = OpponentState,
-			      opponent = Player,
-			      deck = Deck},
-
-    PlayerReturnState = build_state(Player#player.id, ReturnState),
-    OpponentReturnState = build_state(Opponent#player.id, ReturnState),
+update_game_state(State = #state{player=Player, opponent=Opponent}) ->
+    PlayerReturnState = build_response(Player#player.id, State),
+    OpponentReturnState = build_response(Opponent#player.id, State),
     
     case State#state.waiting of
 	Client when is_tuple(Client) ->
@@ -115,10 +113,10 @@ finish_turn(State) ->
 	_ -> ok
     end,
     
-    {PlayerReturnState, ReturnState#state{waiting = ok}}.
+    {reply, PlayerReturnState, State}.
 
 
-build_state(PlayerId, State) ->
+build_response(PlayerId, State) ->
     {Turn, Player, Opponent} = 
 	case State#state.player#player.id of
 	    PlayerId ->
